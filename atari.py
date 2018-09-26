@@ -19,7 +19,7 @@ env = AtariWrapper(env, size=size, frame_count = 3, crop= "Breakout-v0")
 
 hrl = GateTRPO(env, GateTRPOPolicy,TRPOPolicy, VFunction, n_options=4, option_len=3,
         timesteps_per_batch=1024,
-        gamma=0.997, lam=0.98,
+        gamma=0.98, lam=0.98,
         max_kl=1e-3,
         cg_iters=10,
         cg_damping=1e-3,
