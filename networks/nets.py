@@ -38,8 +38,9 @@ class TRPOPolicy(Policy):
     name="TRPOPolicy"
     def __init__(self,env,**kwargs):
         super(TRPOPolicy,self).__init__(env.observation_space.shape,env.action_space.n,**kwargs)
-        self.conv = [nn.Sequential(nn.Conv2d(self.input_shape[0], 6, kernel_size=6, stride=3, padding=2), nn.ReLU(),
-                                    B.conv3_2(6, 12),nn.ReLU())]
+        self.conv = [nn.Sequential(B.conv3_2(self.input_shape[0], 4), nn.ReLU(),
+                                    B.conv3_2(4, 6),nn.ReLU(),
+                                    B.conv3_2(6, 10))]
         x = B.output_shape(self.conv[0],self.input_shape)
         self.model = nn.Sequential(self.conv[0],
                                    B.Flatten(),
@@ -55,8 +56,9 @@ class GateTRPOPolicy(Policy):
     name="GateTRPOPolicy"
     def __init__(self,env,options_n,**kwargs):
         super(GateTRPOPolicy,self).__init__(env.observation_space.shape,options_n,**kwargs)
-        self.conv = [nn.Sequential(nn.Conv2d(self.input_shape[0], 6, kernel_size=6, stride=3, padding=2), nn.ReLU(),
-                                    B.conv3_2(6, 12),nn.ReLU())]
+        self.conv = [nn.Sequential(B.conv3_2(self.input_shape[0], 4), nn.ReLU(),
+                                    B.conv3_2(4, 6),nn.ReLU(),
+                                    B.conv3_2(6, 10))]
         x = B.output_shape(self.conv[0],self.input_shape)
         self.model = nn.Sequential(self.conv[0],
                                    B.Flatten(),
@@ -73,8 +75,9 @@ class VFunction(B.BaseNetwork):
     def __init__(self,env,**kwargs):
         super(VFunction, self).__init__(env.observation_space.shape,1,**kwargs)
         
-        self.conv = [nn.Sequential(nn.Conv2d(self.input_shape[0], 6, kernel_size=6, stride=3, padding=2), nn.ReLU(),
-                                    B.conv3_2(6, 12),nn.ReLU())]
+        self.conv = [nn.Sequential(B.conv3_2(self.input_shape[0], 4), nn.ReLU(),
+                                    B.conv3_2(4, 6),nn.ReLU(),
+                                    B.conv3_2(6, 10))]
         x = B.output_shape(self.conv[0],self.input_shape)
         self.model = nn.Sequential(self.conv[0],
                                    B.Flatten(),
