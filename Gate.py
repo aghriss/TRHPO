@@ -149,7 +149,7 @@ class GateTRPO(BaseAgent):
                     kl = losses["meankl"]
                     if surr == float("Inf") or kl ==float("Inf"):
                         C.warning("Infinite value of losses")
-                    elif kl > 1.5*self.max_kl:
+                    elif kl > self.max_kl:
                         C.warning("Violated KL")
                     elif improve < 0:
                         stepsize *= self.ls_step
@@ -176,8 +176,8 @@ class GateTRPO(BaseAgent):
             self.log("MI",-losses["MI"])
             self.log("MI improve", -losses["MI_get"]()[0]+losses["MI"])
             self.log("Surrogate", surr)
-            self.log("Gate KL",losses["KL_get"]())
-            self.log("HRL KL",losses["KL_gate_get"]())
+            self.log("Gate KL",losses["KL_gate_get"]())
+            self.log("HRL KL",losses["KL_get"]())
         self.log("TDlamret mean",tdlamret.mean())
         self.log("Last 50 rolls mean rew",np.mean(self.episodes_reward))
         self.log("Last 50 rolls mean len",np.mean(self.episodes_len))
