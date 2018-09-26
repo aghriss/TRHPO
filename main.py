@@ -26,5 +26,5 @@ hrl = GateTRPO(env, GateTRPOPolicy,TRPOPolicy, VFunction, n_options=8, option_le
         max_train=1000,
         ls_step=0.5,
         checkpoint_freq=10)
-
+hrl.load()
 hrl.train()
