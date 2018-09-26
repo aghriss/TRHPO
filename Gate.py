@@ -179,7 +179,7 @@ class GateTRPO(BaseAgent):
             self.log("Gate KL",losses["KL_gate_get"]())
             self.log("HRL KL",losses["KL_get"]())
             self.log("TDlamret mean",tdlamret.mean())
-        del(improve, surr, kl)
+            del(improve, surr, kl)
         self.log("Last 50 rolls mean rew",np.mean(self.episodes_reward))
         self.log("Last 50 rolls mean len",np.mean(self.episodes_len))
         del(losses, states, options, actions, advantages, tdlamret, vpred, optimization_gain, loss_grad, grad_kl)
