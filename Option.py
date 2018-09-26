@@ -108,7 +108,7 @@ class OptionTRPO(BaseAgent):
     
             loss = self.value_function.fit(states[options==self.option_n], tdlamret[options==self.option_n], batch_size = 32, epochs = self.vf_iters,l1_decay=1e-4)
             self.log("Vfunction loss",loss)
-        del(get_kl, loss_grad, grad_kl,theta_before, )
+            del(get_kl, loss_grad, grad_kl,theta_before, )
 
     def Fvp(self,grad_kl):
         def fisher_product(v):
