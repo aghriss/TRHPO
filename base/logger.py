@@ -46,7 +46,7 @@ class Logger(object):
             if "numpy" in str(type(val)):
                 self.past[-1][key] = val.tolist()
             else:
-                self.past[-1][key] = val.tolist()
+                self.past[-1][key] = val
     def display(self):
         res = []
         for key,val in self.past[-1].items():
