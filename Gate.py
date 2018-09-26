@@ -7,7 +7,7 @@ import core.math as m_utils
 import core.utils as U
 from Option import OptionTRPO
 import core.console as C
-
+import gc
 
 class GateTRPO(BaseAgent):
 
@@ -181,8 +181,10 @@ class GateTRPO(BaseAgent):
         self.log("TDlamret mean",tdlamret.mean())
         self.log("Last 50 rolls mean rew",np.mean(self.episodes_reward))
         self.log("Last 50 rolls mean len",np.mean(self.episodes_len))
-        
-
+        del(losses,improve, surr,states,options,actions,advantages,tdlamret,vpred,kl,optimization_gain,loss_grad,grad_kl)
+        del(path)
+        for _ in range(10):
+            gc.collect()
     def roller(self):
         
         state = self.env.reset()
