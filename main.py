@@ -12,7 +12,7 @@ game = "gridHRL"
 size = 72
 input_shape=(3,size,size)
 
-env = EnvWrapper(GRID(grid_size=36,max_time=2500,stochastic = True, square_size=2),
+env = EnvWrapper(GRID(grid_size=36,max_time=5000,stochastic = True, square_size=2),
                  record_freq=10, size=size, mode="rgb", frame_count = 1)
 
 
