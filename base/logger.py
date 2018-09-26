@@ -41,9 +41,12 @@ class Logger(object):
     def log(self, key, val):
         self.keys.add(key)
         if type(val) ==torch.Tensor:
-            self.past[-1][key] = U.get(val)
+            self.log(key,U.get(val))
         else:
-            self.past[-1][key] = val
+            if "numpy" in str(type(val)):
+                self.past[-1][key] = val.tolist()
+            else:
+                self.past[-1][key] = val.tolist()
     def display(self):
         res = []
         for key,val in self.past[-1].items():
