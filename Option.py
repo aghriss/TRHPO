@@ -14,7 +14,7 @@ class OptionTRPO(BaseAgent):
                                    max_kl, cg_iters, cg_damping, vf_iters,ls_step,
                                    logger, checkpoint_freq):
         
-        super(OptionTRPO,self).__init__(name="Op%i_"%option_n+self.name+env.name)
+        super(OptionTRPO,self).__init__(name="Op%i_"%option_n+env.name)
         self.option_n = option_n
         self.gamma = gamma
         self.lam = lam

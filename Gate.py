@@ -24,10 +24,10 @@ class GateTRPO(BaseAgent):
         ls_step=0.5,
         checkpoint_freq=50):
         
-        super(GateTRPO,self).__init__(self.name + env.name)
+        super(GateTRPO,self).__init__(name=env.name)
 
         self.n_options=n_options
-        
+        #self.name = self.name 
         self.env = env
         self.gamma = gamma
         self.lam = lam
