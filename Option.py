@@ -19,7 +19,7 @@ class OptionTRPO(BaseAgent):
         self.gamma = gamma
         self.lam = lam
         self.option_len = option_len
-        self.current_step = 1
+        self.current_step = option_len
         self.max_kl = max_kl
         self.cg_iters = cg_iters
         self.cg_damping = cg_damping

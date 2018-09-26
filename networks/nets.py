@@ -38,8 +38,8 @@ class TRPOPolicy(Policy):
     name="TRPOPolicy"
     def __init__(self,env,**kwargs):
         super(TRPOPolicy,self).__init__(env.observation_space.shape,env.action_space.n,**kwargs)
-        self.conv = [nn.Sequential(nn.Conv2d(self.input_shape[0], 8, kernel_size=6, stride=3, padding=2), nn.ReLU(),
-                                    B.conv3_2(8, 16),nn.ReLU())]
+        self.conv = [nn.Sequential(nn.Conv2d(self.input_shape[0], 6, kernel_size=6, stride=3, padding=2), nn.ReLU(),
+                                    B.conv3_2(6, 12),nn.ReLU())]
         x = B.output_shape(self.conv[0],self.input_shape)
         self.model = nn.Sequential(self.conv[0],
                                    B.Flatten(),
@@ -56,8 +56,8 @@ class VFunction(B.BaseNetwork):
     def __init__(self,env,**kwargs):
         super(VFunction, self).__init__(env.observation_space.shape,1,**kwargs)
         
-        self.conv = [nn.Sequential(nn.Conv2d(self.input_shape[0], 8, kernel_size=6, stride=3, padding=2), nn.ReLU(),
-                                    B.conv3_2(8, 16),nn.ReLU())]
+        self.conv = [nn.Sequential(nn.Conv2d(self.input_shape[0], 6, kernel_size=6, stride=3, padding=2), nn.ReLU(),
+                                    B.conv3_2(6, 12),nn.ReLU())]
         x = B.output_shape(self.conv[0],self.input_shape)
         self.model = nn.Sequential(self.conv[0],
                                    B.Flatten(),

@@ -32,7 +32,7 @@ class GateTRPO(BaseAgent):
         self.gamma = gamma
         self.lam = lam
         self.MI_lambda = MI_lambda
-        self.current_option = None
+        self.current_option = 0
         self.timesteps_per_batch = timesteps_per_batch
         self.max_kl = max_kl
         self.cg_iters = cg_iters
@@ -198,10 +198,13 @@ class GateTRPO(BaseAgent):
         done = True
         rew = 0.0
         self.progbar.__init__(self.timesteps_per_batch)
-        while True:            
-            option = self.act(state)
-            action = self.options[option].act(state)
-            vf = self.options[option].value_function.predict(state)            
+        while True:
+            if self.options[self.current_option].finished:
+                self.current_option = self.act(state)
+                self.options[self.current_option].select()
+
+            action = self.options[self.current_option].act(state)
+            vf = self.options[self.current_option].value_function.predict(state)            
             if t > self.timesteps_per_batch-1:
                 path["next_vf"] = vf*(1-done*1.0)
                 self.add_vtarg_and_adv(path)
@@ -212,7 +215,7 @@ class GateTRPO(BaseAgent):
 
             path["states"][t] = state
             state, rew, done,_ = self.env.step(action)
-            path["options"][t] = self.options[option].option_n
+            path["options"][t] = self.options[self.current_option].option_n
             path["actions"][t] = action
             path["rewards"][t] = rew
             path["vf"][t] = vf
