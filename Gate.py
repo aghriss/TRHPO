@@ -121,7 +121,7 @@ class GateTRPO(BaseAgent):
         self.log("Init param sum", theta_before.sum())
         self.log("explained variance",(vpred-tdlamret).var()/tdlamret.var())
         
-        if np.allclose(loss_grad.detach().cpu().numpy(), 0,atol=1e-15):
+        if np.allclose(loss_grad.detach().cpu().numpy(), 0,atol=1e-19):
             print("Got zero gradient. not updating")
         else:
             with C.timeit("Conjugate Gradient"):
@@ -179,9 +179,9 @@ class GateTRPO(BaseAgent):
             self.log("Gate KL",losses["KL_gate_get"]())
             self.log("HRL KL",losses["KL_get"]())
             self.log("TDlamret mean",tdlamret.mean())
-            self.log("Last 50 rolls mean rew",np.mean(self.episodes_reward))
-            self.log("Last 50 rolls mean len",np.mean(self.episodes_len))
-            del(improve, surr, kl)
+        del(improve, surr, kl)
+        self.log("Last 50 rolls mean rew",np.mean(self.episodes_reward))
+        self.log("Last 50 rolls mean len",np.mean(self.episodes_len))
         del(losses, states, options, actions, advantages, tdlamret, vpred, optimization_gain, loss_grad, grad_kl)
         for _ in range(10):
             gc.collect()
