@@ -17,8 +17,8 @@ env.name = "Breakout-v0_"+str(size)
 env = AtariWrapper(env, size=size, frame_count = 3, crop= "Breakout-v0")
 
 
-hrl = GateTRPO(env, GateTRPOPolicy,TRPOPolicy, VFunction, n_options=8, option_len=2,
-        timesteps_per_batch=2048,
+hrl = GateTRPO(env, GateTRPOPolicy,TRPOPolicy, VFunction, n_options=4, option_len=3,
+        timesteps_per_batch=1024,
         gamma=0.997, lam=0.98,
         max_kl=1e-3,
         cg_iters=10,

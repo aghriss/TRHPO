@@ -16,8 +16,8 @@ env = EnvWrapper(GRID(grid_size=36,max_time=5000,stochastic = True, square_size=
                  record_freq=5, size=size, mode="rgb", frame_count = 1)
 
 
-hrl = GateTRPO(env, GateTRPOPolicy,TRPOPolicy, VFunction, n_options=8, option_len=2,
-        timesteps_per_batch=2048,
+hrl = GateTRPO(env, GateTRPOPolicy,TRPOPolicy, VFunction, n_options=4, option_len=3,
+        timesteps_per_batch=1024,
         gamma=0.997, lam=0.98,
         max_kl=1e-4,
         cg_iters=10,
