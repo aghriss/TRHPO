@@ -192,6 +192,8 @@ class GateTRPO(BaseAgent):
                 "rewards":np.zeros(self.timesteps_per_batch),
                 "terminated":np.zeros(self.timesteps_per_batch),
                 "vf": np.zeros(self.timesteps_per_batch)}
+        self.current_option = self.act(state)
+        self.options[self.current_option].select()
         ep_rews = 0
         ep_len = 0
         t = 0
@@ -201,7 +203,6 @@ class GateTRPO(BaseAgent):
         while True:
             if self.options[self.current_option].finished:
                 self.current_option = self.act(state)
-                self.options[self.current_option].select()
 
             action = self.options[self.current_option].act(state)
             vf = self.options[self.current_option].value_function.predict(state)            

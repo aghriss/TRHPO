@@ -38,7 +38,10 @@ class BaseNetwork(torch.nn.Module):
         return y
 
     def fit(self,X,Y,batch_size=50,epochs=1,clip=False,l1_decay=0.0):
-        Xtmp,Ytmp = X.split(batch_size),Y.split(batch_size)
+        if len(X)>batch_size:
+            Xtmp,Ytmp = X.split(batch_size),Y.split(batch_size)
+        else:
+            Xtmp,Ytmp=[X],[Y]
         for _ in range(epochs):
             if self.verbose:self.progbar.__init__(len(Xtmp))
             for x,y in zip(Xtmp,Ytmp):

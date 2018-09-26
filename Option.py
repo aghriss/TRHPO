@@ -102,7 +102,7 @@ class OptionTRPO(BaseAgent):
             self.log("Actual",improve)
             self.log("LS Steps",i)
             self.log("KL",kl)
-
+        self.log("Selected",(options==self.option_n).sum())
         loss = self.value_function.fit(states[options==self.option_n], tdlamret[options==self.option_n], batch_size = 32, epochs = self.vf_iters,l1_decay=1e-4)
         self.log("Vfunction loss",loss)
         self.log("TDlamret mean",tdlamret[options==self.option_n].mean())
