@@ -54,58 +54,61 @@ class OptionTRPO(BaseAgent):
         return {"meankl":mean_kl, "kl_get":kl_get}           
 
     def train(self,states, options, actions, advantages, tdlamret, gate_losses):
-
-        get_kl = self.calculate_kl(states, options, actions, advantages)
-        loss_grad = self.policy.flaten.flatgrad(gate_losses["gain"], retain=True)
-        grad_kl = self.policy.flaten.flatgrad(get_kl["meankl"], create=True, retain=True)
-
-        theta_before = self.policy.flaten.get()
-        self.log("Init param sum", theta_before.sum())        
-        if np.allclose(U.get(loss_grad), 0, atol=1e-15):
-            C.warning("Got zero gradient. not updating %i"%self.option_n)
-        else:
-            stepdir = m_utils.conjugate_gradient(self.Fvp(grad_kl), loss_grad, cg_iters=self.cg_iters)
-
-            assert stepdir.sum()!=float("Inf")
-            shs = .5*stepdir.dot(self.Fvp(grad_kl)(stepdir))
-            lm = torch.sqrt(shs / self.max_kl)
-            self.log("lagrange multiplier:", lm)
-            self.log("gnorm:", np.linalg.norm(loss_grad.cpu().detach().numpy()))
-            fullstep = stepdir / lm
-            expected_improve = loss_grad.dot(fullstep)
-            surrogate_before = gate_losses["surr_get"]()
-            
-            with C.timeit("Line Search"):
-                stepsize = 1.0
-                for i in range(10):
-                    theta_new = theta_before + fullstep * stepsize
-                    self.policy.flaten.set(theta_new)
-                    #losses = self.calculate_losses(states,actions,advantages)
-                    surr = gate_losses["surr_get"]()
-                    improve = surr - surrogate_before
-                    kl = get_kl["kl_get"]()
-                    if surr == float("Inf") or kl ==float("Inf"):
-                        C.warning("Infinite value of losses %i"%self.option_n)
-                    elif kl > 1.5*self.max_kl:
-                        C.warning("Violated KL %i"%self.option_n)
-                    elif improve < 0:
-                        stepsize *= self.ls_step
+        n = (options==self.option_n).sum()
+        self.log("Selected",n)
+        if n >2:
+                    
+            get_kl = self.calculate_kl(states, options, actions, advantages)
+            loss_grad = self.policy.flaten.flatgrad(gate_losses["gain"], retain=True)
+            grad_kl = self.policy.flaten.flatgrad(get_kl["meankl"], create=True, retain=True)
+    
+            theta_before = self.policy.flaten.get()
+            self.log("Init param sum", theta_before.sum())        
+            if np.allclose(U.get(loss_grad), 0, atol=1e-15):
+                C.warning("Got zero gradient. not updating %i"%self.option_n)
+            else:
+                stepdir = m_utils.conjugate_gradient(self.Fvp(grad_kl), loss_grad, cg_iters=self.cg_iters)
+    
+                assert stepdir.sum()!=float("Inf")
+                shs = .5*stepdir.dot(self.Fvp(grad_kl)(stepdir))
+                lm = torch.sqrt(shs / self.max_kl)
+                self.log("lagrange multiplier:", lm)
+                self.log("gnorm:", np.linalg.norm(loss_grad.cpu().detach().numpy()))
+                fullstep = stepdir / lm
+                expected_improve = loss_grad.dot(fullstep)
+                surrogate_before = gate_losses["surr_get"]()
+                
+                with C.timeit("Line Search"):
+                    stepsize = 1.0
+                    for i in range(10):
+                        theta_new = theta_before + fullstep * stepsize
+                        self.policy.flaten.set(theta_new)
+                        #losses = self.calculate_losses(states,actions,advantages)
+                        surr = gate_losses["surr_get"]()
+                        improve = surr - surrogate_before
+                        kl = get_kl["kl_get"]()
+                        if surr == float("Inf") or kl ==float("Inf"):
+                            C.warning("Infinite value of losses %i"%self.option_n)
+                        elif kl > 1.5*self.max_kl:
+                            C.warning("Violated KL %i"%self.option_n)
+                        elif improve < 0:
+                            stepsize *= self.ls_step
+                        else:
+                            self.log("Line Search","OK")
+                            break
                     else:
-                        self.log("Line Search","OK")
-                        break
-                else:
-                    improve = 0
-                    self.log("Line Search","NOPE")
-                    self.policy.flaten.set(theta_before)
-
-            self.log("Expected",expected_improve)
-            self.log("Actual",improve)
-            self.log("LS Steps",i)
-            self.log("KL",kl)
-        self.log("Selected",(options==self.option_n).sum())
-        loss = self.value_function.fit(states[options==self.option_n], tdlamret[options==self.option_n], batch_size = 32, epochs = self.vf_iters,l1_decay=1e-4)
-        self.log("Vfunction loss",loss)
-        self.log("TDlamret mean",tdlamret[options==self.option_n].mean())
+                        improve = 0
+                        self.log("Line Search","NOPE")
+                        self.policy.flaten.set(theta_before)
+    
+                self.log("Expected",expected_improve)
+                self.log("Actual",improve)
+                self.log("LS Steps",i)
+                self.log("KL",kl)
+    
+            loss = self.value_function.fit(states[options==self.option_n], tdlamret[options==self.option_n], batch_size = 32, epochs = self.vf_iters,l1_decay=1e-4)
+            self.log("Vfunction loss",loss)
+            self.log("TDlamret mean",tdlamret[options==self.option_n].mean())
 
     def Fvp(self,grad_kl):
         def fisher_product(v):
