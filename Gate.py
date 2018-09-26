@@ -13,7 +13,7 @@ class GateTRPO(BaseAgent):
 
     name = "GateTRPO"
 
-    def __init__(self,env, policy_func, value_func, n_options,option_len=3,
+    def __init__(self,env, gatepolicy, policy_func, value_func, n_options,option_len=3,
         timesteps_per_batch=1000,
         gamma=0.99, lam=0.97, MI_lambda=1e-3,
         max_kl=1e-2,
@@ -41,8 +41,8 @@ class GateTRPO(BaseAgent):
         self.ls_step = ls_step
         self.checkpoint_freq=checkpoint_freq
         
-        self.policy = policy_func(env)
-        self.oldpolicy = policy_func(env,verbose=0)
+        self.policy = gatepolicy(env,self.n_options)
+        self.oldpolicy = gatepolicy(env,self.n_options,verbose=0)
         self.progbar = Progbar(self.timesteps_per_batch)
         
         self.path_generator = self.roller()        

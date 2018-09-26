@@ -43,8 +43,25 @@ class TRPOPolicy(Policy):
         x = B.output_shape(self.conv[0],self.input_shape)
         self.model = nn.Sequential(self.conv[0],
                                    B.Flatten(),
-                                   nn.Linear(np.prod(x), 512),nn.Tanh(),
-                                   nn.Linear(512,self.output_shape))
+                                   nn.Linear(np.prod(x), 256),nn.Tanh(),
+                                   nn.Linear(256,self.output_shape))
+
+        self.compile()
+        
+        self.loss = torch.nn.MSELoss()
+        self.optimizer = optim.RMSprop(self.parameters(),lr=1e-5,alpha=0.99,weight_decay=1e-4)
+        
+class GateTRPOPolicy(Policy):
+    name="GateTRPOPolicy"
+    def __init__(self,env,options_n,**kwargs):
+        super(GateTRPOPolicy,self).__init__(env.observation_space.shape,options_n,**kwargs)
+        self.conv = [nn.Sequential(nn.Conv2d(self.input_shape[0], 6, kernel_size=6, stride=3, padding=2), nn.ReLU(),
+                                    B.conv3_2(6, 12),nn.ReLU())]
+        x = B.output_shape(self.conv[0],self.input_shape)
+        self.model = nn.Sequential(self.conv[0],
+                                   B.Flatten(),
+                                   nn.Linear(np.prod(x), 256),nn.Tanh(),
+                                   nn.Linear(256,self.output_shape))
 
         self.compile()
         
@@ -61,8 +78,8 @@ class VFunction(B.BaseNetwork):
         x = B.output_shape(self.conv[0],self.input_shape)
         self.model = nn.Sequential(self.conv[0],
                                    B.Flatten(),
-                                   nn.Linear(np.prod(x), 512),nn.Tanh(),
-                                   nn.Linear(512,self.output_shape))
+                                   nn.Linear(np.prod(x), 256),nn.Tanh(),
+                                   nn.Linear(256,self.output_shape))
 
         self.compile()
         self.loss = torch.nn.SmoothL1Loss()

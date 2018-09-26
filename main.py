@@ -1,7 +1,7 @@
 from envs.grid import GRID
 from base.wrappers import EnvWrapper
 from Gate import GateTRPO
-from networks.nets import TRPOPolicy, VFunction
+from networks.nets import GateTRPOPolicy,TRPOPolicy, VFunction
 
 import gc
 
@@ -16,7 +16,7 @@ env = EnvWrapper(GRID(grid_size=36,max_time=5000,stochastic = True, square_size=
                  record_freq=5, size=size, mode="rgb", frame_count = 1)
 
 
-hrl = GateTRPO(env, TRPOPolicy, VFunction, n_options=8, option_len=2,
+hrl = GateTRPO(env, GateTRPOPolicy,TRPOPolicy, VFunction, n_options=8, option_len=2,
         timesteps_per_batch=2048,
         gamma=0.997, lam=0.98,
         max_kl=1e-3,

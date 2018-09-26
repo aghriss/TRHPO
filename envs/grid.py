@@ -62,7 +62,7 @@ class GRID(object):
             reward = self.board[self.x,self.y]
             if reward == -1:
                 self.x,self.y = oldx, oldy
-                reward = 0
+                reward = -0.0001
         else:
             RuntimeError('Error: action not recognized')
 
