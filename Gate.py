@@ -330,3 +330,9 @@ class GateTRPO(BaseAgent):
                 "MI_get": MI_get,
                 "KL_get": KL_get,
                 "KL_gate_get": KL_gate_get}
+  
+    def load(self):
+        super(GateTRPO,self).load()
+
+        for p in self.options:
+            p.load()
