@@ -20,8 +20,8 @@ class QFunction(B.BaseNetwork):
     
     def __init__(self,env,**kwargs):
         super(QFunction, self).__init__(env.observation_space.shape,env.action_space.n,**kwargs)
-        self.conv = [nn.Sequential(nn.Conv2d(self.input_shape[0], 8, kernel_size=6, stride=3, padding=2), nn.Tanh(),
-                                    B.conv3_2(8, 16),
+        self.conv = [nn.Sequential(nn.Conv2d(self.input_shape[0], 8, kernel_size=6, stride=3, padding=2), nn.ReLU(),
+                                    B.conv3_2(8, 16),nn.ReLU(),
                                     B.conv3_2(16, 32))]
         x = B.output_shape(self.conv[0],self.input_shape)
         self.model = nn.Sequential(self.conv[0],
@@ -38,14 +38,14 @@ class TRPOPolicy(Policy):
     name="TRPOPolicy"
     def __init__(self,env,**kwargs):
         super(TRPOPolicy,self).__init__(env.observation_space.shape,env.action_space.n,**kwargs)
-        self.conv = [nn.Sequential(B.conv3_2(self.input_shape[0], 4), nn.ReLU(),
-                                    B.conv3_2(4, 6),
-                                    B.conv3_2(6, 10),nn.ReLU())]
+        self.conv = [nn.Sequential(nn.Conv2d(self.input_shape[0], 8, kernel_size=6, stride=3, padding=2), nn.ReLU(),
+                                    B.conv3_2(8, 16),nn.ReLU(),
+                                    B.conv3_2(16, 32))]
         x = B.output_shape(self.conv[0],self.input_shape)
         self.model = nn.Sequential(self.conv[0],
-                                   B.Flatten(),
-                                   nn.Linear(np.prod(x), 256),nn.Tanh(),
-                                   nn.Linear(256,self.output_shape))
+                                   B.Flatten(),nn.Tanh(),
+                                   nn.Linear(np.prod(x), 512),
+                                   nn.Linear(512,self.output_shape))
 
         self.compile()
         
@@ -56,15 +56,14 @@ class GateTRPOPolicy(Policy):
     name="GateTRPOPolicy"
     def __init__(self,env,options_n,**kwargs):
         super(GateTRPOPolicy,self).__init__(env.observation_space.shape,options_n,**kwargs)
-        self.conv = [nn.Sequential(B.conv3_2(self.input_shape[0], 4), nn.ReLU(),
-                                    B.conv3_2(4, 6),
-                                    B.conv3_2(6, 10),nn.ReLU())]
+        self.conv = [nn.Sequential(nn.Conv2d(self.input_shape[0], 8, kernel_size=6, stride=3, padding=2), nn.ReLU(),
+                                    B.conv3_2(8, 16),nn.ReLU(),
+                                    B.conv3_2(16, 32))]
         x = B.output_shape(self.conv[0],self.input_shape)
         self.model = nn.Sequential(self.conv[0],
-                                   B.Flatten(),
-                                   nn.Linear(np.prod(x), 256),nn.Tanh(),
-                                   nn.Linear(256,self.output_shape))
-
+                                   B.Flatten(),nn.Tanh(),
+                                   nn.Linear(np.prod(x), 512),
+                                   nn.Linear(512,self.output_shape))
         self.compile()
         
         self.loss = torch.nn.MSELoss()
@@ -75,18 +74,18 @@ class VFunction(B.BaseNetwork):
     def __init__(self,env,**kwargs):
         super(VFunction, self).__init__(env.observation_space.shape,1,**kwargs)
         
-        self.conv = [nn.Sequential(B.conv3_2(self.input_shape[0], 4), nn.ReLU(),
-                                    B.conv3_2(4, 6),
-                                    B.conv3_2(6, 10),nn.ReLU())]
+        self.conv = [nn.Sequential(nn.Conv2d(self.input_shape[0], 8, kernel_size=6, stride=3, padding=2), nn.ReLU(),
+                                    B.conv3_2(8, 16),nn.ReLU(),
+                                    B.conv3_2(16, 32))]
         x = B.output_shape(self.conv[0],self.input_shape)
         self.model = nn.Sequential(self.conv[0],
-                                   B.Flatten(),
-                                   nn.Linear(np.prod(x), 256),nn.Tanh(),
-                                   nn.Linear(256,self.output_shape))
+                                   B.Flatten(),nn.Tanh(),
+                                   nn.Linear(np.prod(x), 512),
+                                   nn.Linear(512,self.output_shape))
 
         self.compile()
         self.loss = torch.nn.SmoothL1Loss()
-        self.optimizer = optim.RMSprop(self.parameters(), lr=1e-3,alpha=0.95,eps=0.01,momentum=0.95)
+        self.optimizer = optim.RMSprop(self.parameters(), lr=2e-4,alpha=0.95,eps=0.01,momentum=0.95)
 
 
 class QFunction_S(B.BaseNetwork):
