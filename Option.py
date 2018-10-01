@@ -48,19 +48,19 @@ class OptionTRPO(BaseAgent):
         def kl_get(grad=False):
             if grad:
                 return m_utils.kl_logits(old_pi,self.policy(states)).mean() 
-            return m_utils.kl_logits(old_pi,self.policy(states).detach()).mean()            
-        mean_kl = m_utils.kl_logits(old_pi,self.policy(states)).mean()
+            return m_utils.kl_logits(old_pi,self.policy(states).detach()).mean()
 
-        return {"meankl":mean_kl, "kl_get":kl_get}           
+        return kl_get
 
     def train(self,states, options, actions, advantages, tdlamret, gate_losses):
         n = (options==self.option_n).sum()
         self.log("Selected",n)
         if n >2:
                     
-            get_kl = self.calculate_kl(states, options, actions, advantages)
+            kl_get = self.calculate_kl(states, options, actions, advantages)
             loss_grad = self.policy.flaten.flatgrad(gate_losses["gain"], retain=True)
-            grad_kl = self.policy.flaten.flatgrad(get_kl["meankl"], create=True, retain=True)
+            surrogate_before = kl_get(grad=True)
+            grad_kl = self.policy.flaten.flatgrad(surrogate_before, create=True, retain=True)
     
             theta_before = self.policy.flaten.get()
             self.log("Init param sum", theta_before.sum())        
@@ -76,7 +76,6 @@ class OptionTRPO(BaseAgent):
                 self.log("gnorm:", np.linalg.norm(loss_grad.cpu().detach().numpy()))
                 fullstep = stepdir / lm
                 expected_improve = loss_grad.dot(fullstep)
-                surrogate_before = gate_losses["surr_get"]()
                 
                 with C.timeit("Line Search"):
                     stepsize = 1.0
@@ -86,7 +85,7 @@ class OptionTRPO(BaseAgent):
                         #losses = self.calculate_losses(states,actions,advantages)
                         surr = gate_losses["surr_get"]()
                         improve = surr - surrogate_before
-                        kl = get_kl["kl_get"]()
+                        kl = kl_get()
                         if surr == float("Inf") or kl ==float("Inf"):
                             C.warning("Infinite value of losses %i"%self.option_n)
                         elif kl > self.max_kl:
@@ -108,7 +107,7 @@ class OptionTRPO(BaseAgent):
     
             loss = self.value_function.fit(states[options==self.option_n], tdlamret[options==self.option_n], batch_size = 32, epochs = self.vf_iters,l1_decay=1e-4)
             self.log("Vfunction loss",loss)
-            del(get_kl, loss_grad, grad_kl,theta_before, )
+            del(get_kl, loss_grad, grad_kl,theta_before)
 
     def Fvp(self,grad_kl):
         def fisher_product(v):
