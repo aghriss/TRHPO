@@ -131,7 +131,7 @@ class GateTRPO(BaseAgent):
             self.log("Conjugate Gradient in s",C.elapsed)
             assert stepdir.sum()!=float("Inf")
             shs = .5*stepdir.dot(self.Fvp(grad_kl)(stepdir))
-            lm = torch.sqrt(shs / self.max_kl)
+            lm = torch.sqrt(shs / self.gate_max_kl)
             self.log("lagrange multiplier:", lm)
             self.log("gnorm:", np.linalg.norm(loss_grad.cpu().detach().numpy()))
             fullstep = stepdir / lm
