@@ -16,7 +16,8 @@ class GateTRPO(BaseAgent):
     def __init__(self,env, gatepolicy, policy_func, value_func, n_options,option_len=3,
         timesteps_per_batch=1000,
         gamma=0.99, lam=0.97, MI_lambda=1e-3,
-        max_kl=1e-2,
+        gate_max_kl=1e-2,
+        option_max_kl=1e-2,
         cg_iters=10,
         cg_damping=1e-2,
         vf_iters=2,
@@ -34,7 +35,7 @@ class GateTRPO(BaseAgent):
         self.MI_lambda = MI_lambda
         self.current_option = 0
         self.timesteps_per_batch = timesteps_per_batch
-        self.max_kl = max_kl
+        self.gate_max_kl = gate_max_kl
         self.cg_iters = cg_iters
         self.cg_damping = cg_damping
         self.max_train = max_train
@@ -54,7 +55,7 @@ class GateTRPO(BaseAgent):
         self.options = [OptionTRPO(env.name, i,
                                    env, policy_func, value_func,
                                    gamma, lam, option_len,
-                                   max_kl,cg_iters,cg_damping,vf_iters,ls_step,
+                                   option_max_kl,cg_iters,cg_damping,vf_iters,ls_step,
                                    self.logger, checkpoint_freq) for i in range(n_options)]
         
     def act(self,state,train=True):
@@ -149,7 +150,7 @@ class GateTRPO(BaseAgent):
                     kl = losses["meankl"]
                     if surr == float("Inf") or kl ==float("Inf"):
                         C.warning("Infinite value of losses")
-                    elif kl > self.max_kl:
+                    elif kl > self.gate_max_kl:
                         C.warning("Violated KL")
                     elif improve < 0:
                         stepsize *= self.ls_step
