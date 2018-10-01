@@ -112,7 +112,7 @@ class GateTRPO(BaseAgent):
         advantages = (advantages - advantages.mean()) / advantages.std() # standardized advantage function estimate        
                         
         losses = self.calculate_losses(states, options, actions, advantages)       
-        kl = losses["meankl"]
+        kl = losses["gate_meankl"]
         optimization_gain = losses["gain"]
 
         loss_grad = self.policy.flaten.flatgrad(optimization_gain,retain=True)     
@@ -147,7 +147,7 @@ class GateTRPO(BaseAgent):
                     self.policy.flaten.set(theta_new)
                     surr = losses["surr_get"]() 
                     improve = surr - surrogate_before
-                    kl = losses["meankl"]
+                    kl = losses["KL_gate_get"]()
                     if surr == float("Inf") or kl ==float("Inf"):
                         C.warning("Infinite value of losses")
                     elif kl > self.gate_max_kl:
@@ -327,7 +327,7 @@ class GateTRPO(BaseAgent):
         I = m_utils.entropy_logits(log_pi_o_ais) - m_utils.entropy_logits(log_pi_oi_ais)
 
         return {"MI": I,
-                "meankl": mean_kl_gate,
+                "gate_meankl": mean_kl_gate,
                 "old_log_pi_oia_s": old_log_pi_oia_s,
                 "log_pi_oia_s": log_pi_oia_s,
                 "MI_get": MI_get,
