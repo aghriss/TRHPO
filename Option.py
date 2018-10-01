@@ -89,7 +89,7 @@ class OptionTRPO(BaseAgent):
                         kl = get_kl["kl_get"]()
                         if surr == float("Inf") or kl ==float("Inf"):
                             C.warning("Infinite value of losses %i"%self.option_n)
-                        elif kl > 1.5*self.max_kl:
+                        elif kl > self.max_kl:
                             C.warning("Violated KL %i"%self.option_n)
                         elif improve < 0:
                             stepsize *= self.ls_step

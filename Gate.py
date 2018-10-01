@@ -47,8 +47,8 @@ class GateTRPO(BaseAgent):
         self.progbar = Progbar(self.timesteps_per_batch)
         
         self.path_generator = self.roller()        
-        self.episodes_reward=collections.deque([],50)
-        self.episodes_len=collections.deque([],50)
+        self.episodes_reward=collections.deque([],5)
+        self.episodes_len=collections.deque([],5)
         self.done = 0
         self.functions = [self.policy]
         
@@ -181,8 +181,8 @@ class GateTRPO(BaseAgent):
             self.log("HRL KL",losses["KL_get"]())
             self.log("TDlamret mean",tdlamret.mean())
             del(improve, surr, kl)
-        self.log("Last 50 rolls mean rew",np.mean(self.episodes_reward))
-        self.log("Last 50 rolls mean len",np.mean(self.episodes_len))
+        self.log("Last %i rolls mean rew"%len(self.episodes_reward),np.mean(self.episodes_reward))
+        self.log("Last %i rolls mean len"%len(self.episodes_len),np.mean(self.episodes_len))
         del(losses, states, options, actions, advantages, tdlamret, vpred, optimization_gain, loss_grad, grad_kl)
         for _ in range(10):
             gc.collect()
