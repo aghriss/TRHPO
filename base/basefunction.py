@@ -16,33 +16,47 @@ from base.basenetwork import BaseNetwork
 
 
 class Policy(BaseNetwork):
-
+    grad_enabled = True
     name = "Policy"
     softmax = torch.nn.LogSoftmax(-1)
-    def sample(self,states):
-        logits = self.predict(states)
-        #soft = np.exp(logits)
-        #p = (soft/np.sum(soft))[0]
+    
+#    def __init__(self,grad_enabled=Tru):
         
-        u = np.random.uniform(size=logits.shape)
-        return np.argmax(logits - np.log(-np.log(u)), axis=-1)
-        #print(p)
-        #return np.random.choice(range(len(p)), p=p)
+    def disable_grad(self):
+        self.grad_enabled=False
+
+    def forward(self,x):
+        with torch.set_grad_enabled(self.grad_enabled):
+            return super(Policy, self).forward(x)
+
+    def sample(self,state):
+        p = self.prob_predict(state)
+        return np.random.choice(range(len(p)), p=p)
         
     def act(self,state):
-        return np.argmax(self.predict(state), axis=-1)
+        return argmax(self.predict(state), axis=-1)
+
     def logsoftmax(self,x):
         return self.softmax(self.forward(x))
-        
-    def kl_logits(self, pi, states):
-        logits1 = self.forward(states)
-        logits2 = pi(states)
-        a0 = logits1 - logits1.max(axis=-1, keepdim=True)
-        a1 = logits2 - logits2.max(axis=-1, keepdim=True)
-        ea0 = torch.exp(a0)
-        ea1 = torch.exp(a1)
-        z0 = ea0.sum(axis=-1, keepdim=True)
-        z1 = ea1.sum(axis=-1, keepdims=True)
-        p0 = ea0 / z0
-        return (p0 * (a0 - torch.log(z0) - a1 + torch.log(z1))).sum(axis=-1)
+          
+    def entropy(self, states):
+        logits = self.logsoftmax(states)
+        return -(logits.exp()*logits).sum(dim=-1)
+    
+    def kl(self,pi,states):
+        a1 = self.logsoftmax(states)
+        a2 = self.pi.logsoftmax(states)
+        z1 = a1.exp()
+        return (z1*(a1-a2)).sum(dim=-1)
+    
+    def neglogp(self,states, actions):
+        return torch.nn.CrossEntropyLoss(reduce=False)(self.forward(states), actions.squeeze())
 
+    def logp(self,states, actions):
+        return -self.neglogp(states, actions)
+
+def argmax(vect):
+    mx = max(vect)
+    idx = np.where(vect==mx)[0]
+    return np.random.choice(idx)
+    

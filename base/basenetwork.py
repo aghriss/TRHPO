@@ -9,15 +9,19 @@ class BaseNetwork(torch.nn.Module):
         Base class for our Neural networks
     """
     name = "BaseNetwork"
-    def __init__(self,input_shape=None,output_shape=None,owner_name="",verbose=1):
+    def __init__(self,input_shape=None,output_shape=None,name=None, owner_name="",verbose=1):
         super(BaseNetwork,self).__init__()
         self.input_shape = input_shape
         self.output_shape = output_shape
+        if name is not None:
+            self.name = name
         self.name = self.name+".%s"%owner_name
         self.progbar = C.Progbar(100,verbose=verbose)
         self.verbose=verbose
+
     def forward(self,x):
         return self.model(x)
+
     def forward_(self,x):
         return self.forward(x)/x.size(0)**.5
 
@@ -26,7 +30,7 @@ class BaseNetwork(torch.nn.Module):
         l.backward()
         if clip:nn.utils.clip_grad_norm_(self.parameters(), 1.0)
         self.optimizer.step()
-        
+
     def predict(self,x):
         self.eval()
         x = U.torchify(x)
@@ -34,6 +38,14 @@ class BaseNetwork(torch.nn.Module):
             x.unsqueeze_(0)
         
         y = U.get(self.forward(x).squeeze())
+        self.train()
+        return y
+    def prob_predict(self,x):
+        self.eval()
+        x = U.torchify(x)
+        if len(x.shape) ==len(self.input_shape):
+            x.unsqueeze_(0)
+        y = U.get(self.logsoftmax(x).squeeze().exp())
         self.train()
         return y
 
@@ -191,3 +203,4 @@ def parameters_gen(parameters):
             if p.requires_grad:
                 yield p
     return generator
+

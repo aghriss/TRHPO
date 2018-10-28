@@ -6,6 +6,7 @@ import core.utils as U
 import core.console as C
 
 
+
 class OptionTRPO(BaseAgent):
 
     name = "OptionTRPO"
@@ -26,9 +27,10 @@ class OptionTRPO(BaseAgent):
         self.vf_iters = vf_iters
         self.ls_step = ls_step
         
-        self.policy = policy_func(env,verbose=0)
-        self.oldpolicy = policy_func(env,verbose=0)
-        self.value_function = value_func(env,verbose=0)
+        self.policy = policy_func(env.observation_space.shape,env.action_space.n,verbose=0)
+        self.oldpolicy = policy_func(env.observation_space.shape,env.action_space.n,verbose=0)
+        self.oldpolicy.disable_grad()
+        self.value_function = value_func(env.observation_space.shape,1,verbose=0)
                 
         self.functions = [self.policy, self.value_function]
         self.logger = logger
@@ -107,7 +109,7 @@ class OptionTRPO(BaseAgent):
     
             loss = self.value_function.fit(states[options==self.option_n], tdlamret[options==self.option_n], batch_size = 32, epochs = self.vf_iters,l1_decay=1e-4)
             self.log("Vfunction loss",loss)
-            del(get_kl, loss_grad, grad_kl,theta_before)
+            del(kl_get, loss_grad, grad_kl,theta_before)
 
     def Fvp(self,grad_kl):
         def fisher_product(v):
@@ -115,6 +117,11 @@ class OptionTRPO(BaseAgent):
             grad_grad_kl = self.policy.flaten.flatgrad(kl_v, retain=True)
             return grad_grad_kl + v * self.cg_damping        
         return fisher_product
+    def mean_KL(self,states,grad=False):
+        if grad:
+            return self.oldpolicy.kl_logits(self.policy,states).mean()
+        with torch.set_grad_enabled(False):
+            return self.oldpolicy.kl_logits(self.policy,states).mean()
 
     def select(self):
         self.current_step = 0

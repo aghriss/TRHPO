@@ -8,34 +8,14 @@ Created on Tue May  1 16:44:56 2018
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def entropy_logits(logits):
-    a0 = logits - logits.max(dim=-1, keepdim=True)[0]
-    ea0 = torch.exp(a0)
-    z0 = ea0.sum(dim=-1, keepdim=True)
-    p0 = ea0 / z0
-    return (p0 * (torch.log(z0) - a0)).sum(dim=-1)
+    logsoft = F.log_softmax(logits,-1)
+    return -(logsoft.exp()*logsoft).sum(dim=-1)
 
-def kl_logits(logits1,logits2):
-    a0 = logits1 - logits1.max(dim=-1, keepdim=True)[0]
-    a1 = logits2 - logits2.max(dim=-1, keepdim=True)[0]
-    ea0 = torch.exp(a0)
-    ea1 = torch.exp(a1)
-    z0 = ea0.sum(dim=-1, keepdim=True)
-    z1 = ea1.sum(dim=-1, keepdim=True)
-    p0 = ea0 / z0
-    return (p0 * (a0 - torch.log(z0) - a1 + torch.log(z1))).sum(dim=-1)
-    
-def mode(pi):
-    return pi.max(dim=-1)[1]
-    
-def neglogp(pi, actions):
-    return torch.nn.CrossEntropyLoss(reduce=False)(pi, actions.squeeze())
-
-def logp(pi, actions):
-    return -neglogp(pi, actions)
 def linesearch(f, x, fullstep, max_backtracks=20):
     """
     Backtracking linesearch, where expected_improve_rate is the slope dy/dx at the initial point

@@ -42,8 +42,9 @@ class GateTRPO(BaseAgent):
         self.ls_step = ls_step
         self.checkpoint_freq=checkpoint_freq
         
-        self.policy = gatepolicy(env,self.n_options)
-        self.oldpolicy = gatepolicy(env,self.n_options,verbose=0)
+        self.policy = gatepolicy(env.observation_space.shape,env.action_space.n)
+        self.oldpolicy = gatepolicy(env.observation_space.shape,env.action_space.n,verbose=0)
+        self.oldpolicy.disable_grad()
         self.progbar = Progbar(self.timesteps_per_batch)
         
         self.path_generator = self.roller()        
@@ -106,10 +107,10 @@ class GateTRPO(BaseAgent):
         states = U.torchify(path["states"])
         options = U.torchify(path["options"]).long()
         actions = U.torchify(path["actions"]).long()
-        advantages = U.torchify(path["advantage"])
+        advantages = U.torchify(path["baseline"])
         tdlamret = U.torchify(path["tdlamret"])
         vpred = U.torchify(path["vf"]) # predicted value function before udpate
-        advantages = (advantages - advantages.mean()) / advantages.std() # standardized advantage function estimate        
+        #advantages = (advantages - advantages.mean()) / advantages.std() # standardized advantage function estimate        
                         
         losses = self.calculate_losses(states, options, actions, advantages)       
         kl = losses["gate_meankl"]
@@ -249,6 +250,7 @@ class GateTRPO(BaseAgent):
             delta = path["rewards"][t] + self.gamma * vpred[t+1] * nonterminal - vpred[t]
             path["advantage"][t] = lastgaelam = delta + self.gamma * self.lam * nonterminal * lastgaelam
         path["tdlamret"] = (path["advantage"] + path["vf"]).reshape(-1,1)
+        path["baseline"] = (path["advantage"]-np.mean(path["advantage"]))/np.std(path["advantage"])
 
     def Fvp(self,grad_kl):
         def fisher_product(v):
@@ -259,7 +261,6 @@ class GateTRPO(BaseAgent):
     
     
     def KLRIM(self, states, options, actions):
-        
         
         """
         pg : \pi_g
@@ -275,67 +276,78 @@ class GateTRPO(BaseAgent):
         old_log_pi_oa_s = old_log_pi_a_so+old_log_pg_o_s.unsqueeze(-1)
         old_log_pi_a_s = old_log_pi_oa_s.exp().sum(1).log()
         old_log_pi_oia_s = old_log_pi_oa_s[np.arange(states.shape[0]),options]
-        
-        def KL_get(grad=False):
-            if grad:
+
+
+    def calculate_surr(self,states,options,actions,advantages,grad=False):
+        if grad:
+            log_pi_a_so = torch.cat([p.policy.logsoftmax(states).unsqueeze(1) for p in self.options],dim=1)
+            log_pg_o_s = self.policy.logsoftmax(states)
+        else:
+            with torch.set_grad_enabled(False):
                 log_pi_a_so = torch.cat([p.policy.logsoftmax(states).unsqueeze(1) for p in self.options],dim=1)
                 log_pg_o_s = self.policy.logsoftmax(states)
-            else:
-                log_pi_a_so = torch.cat([p.policy.logsoftmax(states).detach().unsqueeze(1) for p in self.options],dim=1)
-                log_pg_o_s = self.policy.logsoftmax(states).detach()                
-            log_pi_a_s = (log_pi_a_so+log_pg_o_s.unsqueeze(-1)).exp().sum(1).log()    
-            mean_kl_new_old = m_utils.kl_logits(old_log_pi_a_s,log_pi_a_s).mean()    
-            return mean_kl_new_old
 
-        def KL_gate_get(grad=False):
-            if grad:
-                log_pg_o_s = self.policy.logsoftmax(states)
-            else:                
-                log_pg_o_s = self.policy.logsoftmax(states).detach()
-            return m_utils.kl_logits(old_log_pg_o_s,log_pg_o_s).mean()
-
-        def MI_get(grad=False):
-            if grad:
-                log_pi_a_so = torch.cat([p.policy.logsoftmax(states).unsqueeze(1) for p in self.options],dim=1)
-                log_pg_o_s = self.policy.logsoftmax(states)
-            else:
-                log_pi_a_so = torch.cat([p.policy.logsoftmax(states).detach().unsqueeze(1) for p in self.options],dim=1)
-                log_pg_o_s = self.policy.logsoftmax(states).detach()
-            
-            log_pi_oa_s = log_pi_a_so+log_pg_o_s.unsqueeze(-1)
-            log_pi_a_s = log_pi_oa_s.exp().sum(1).log()
-            log_pi_o_as = log_pi_oa_s - log_pi_a_s.unsqueeze(1)
-            log_pi_o_ais = log_pi_o_as[np.arange(states.shape[0]),:,actions].exp().mean(0).log()        
-            log_pi_oi_ais = log_pi_o_as[np.arange(states.shape[0]),options,actions]   
-            log_pi_oia_s = log_pi_oa_s[np.arange(states.shape[0]),options]
-            I = m_utils.entropy_logits(log_pi_o_ais) - m_utils.entropy_logits(log_pi_oi_ais)
-            return I, log_pi_oia_s
-
-        log_pi_a_so = torch.cat([p.policy.logsoftmax(states).unsqueeze(1) for p in self.options],dim=1)
-        log_pg_o_s = self.policy.logsoftmax(states)
         log_pi_oa_s = log_pi_a_so+log_pg_o_s.unsqueeze(-1)
         log_pi_a_s = log_pi_oa_s.exp().sum(1).log()
         log_pi_o_as = log_pi_oa_s - log_pi_a_s.unsqueeze(1)
-        log_pi_oia_s = log_pi_oa_s[np.arange(states.shape[0]),options]
         
-        mean_kl_gate = m_utils.kl_logits(old_log_pg_o_s,log_pg_o_s).mean()
-        
-        log_pi_o_ais = log_pi_o_as[np.arange(states.shape[0]),:,actions].exp().mean(0).log()        
+        H_O_AS = -(log_pi_a_s.exp()*(log_pi_o_as*log_pi_o_as.exp()).sum(1)).sum(-1).mean()
+        H_O = m_utils.entropy_logits(log_pg_o_s).mean()
+        log_pi_o_ais = log_pi_o_as[np.arange(states.shape[0]),:,actions].exp().mean(0).log()
         log_pi_oi_ais = log_pi_o_as[np.arange(states.shape[0]),options,actions]
+        log_pi_oia_s = log_pi_oa_s[np.arange(states.shape[0]),options]
+        MI = m_utils.entropy_logits(log_pi_o_ais) - m_utils.entropy_logits(log_pi_oi_ais)
+    
+
+        ratio = torch.exp(m_utils.logp(pi,actions) - m_utils.logp(old_pi,actions))
+        surrogate_gain = (ratio * advantages).mean()
+
+        optimization_gain = surrogate_gain - self.MI_lambda*MI
+        
+#    def surr_get(self,grad=False):
+#        Id,pid = RIM["MI_get"](grad)
+#        return (torch.exp(m_utils.logp(pid,actions) - m_utils.logp(old_pi,actions))*advantages).mean() - self.MI_lambda*Id
+#        
+#        RIM["gain"] = optimization_gain
+#        RIM["surr_get"] = surr_get
+#        return RIM
+#    
+#        return MI
+#
+#        log_pi_a_so = torch.cat([p.policy.logsoftmax(states).unsqueeze(1) for p in self.options],dim=1)
+#        log_pg_o_s = self.policy.logsoftmax(states)
+#        log_pi_oa_s = log_pi_a_so+log_pg_o_s.unsqueeze(-1)
+#        log_pi_a_s = log_pi_oa_s.exp().sum(1).log()
+#        log_pi_o_as = log_pi_oa_s - log_pi_a_s.unsqueeze(1)
+#        
+#        
+#        log_pi_o_ais = log_pi_o_as[np.arange(states.shape[0]),:,actions].exp().mean(0).log()        
+#        log_pi_oi_ais = log_pi_o_as[np.arange(states.shape[0]),options,actions]
         
 
-        I = m_utils.entropy_logits(log_pi_o_ais) - m_utils.entropy_logits(log_pi_oi_ais)
 
-        return {"MI": I,
-                "gate_meankl": mean_kl_gate,
-                "old_log_pi_oia_s": old_log_pi_oia_s,
-                "log_pi_oia_s": log_pi_oia_s,
-                "MI_get": MI_get,
-                "KL_get": KL_get,
-                "KL_gate_get": KL_gate_get}
-  
+    def mean_HKL(self,states, old_log_pi_a_s,grad=False):
+        
+        if grad:
+            log_pi_a_so = torch.cat([p.policy.logsoftmax(states).unsqueeze(1) for p in self.options],dim=1)
+            log_pg_o_s = self.policy.logsoftmax(states)
+        else:
+            log_pi_a_so = torch.cat([p.policy.logsoftmax(states).detach().unsqueeze(1) for p in self.options],dim=1)
+            log_pg_o_s = self.policy.logsoftmax(states).detach()                
+        log_pi_a_s = (log_pi_a_so+log_pg_o_s.unsqueeze(-1)).exp().sum(1).log()
+        mean_kl_new_old = m_utils.kl_logits(old_log_pi_a_s,log_pi_a_s).mean()    
+        return mean_kl_new_old
+
+    def mean_KL_gate(self,states, old_log_pg_o_s, grad=False):
+        if grad:
+            log_pg_o_s = self.policy.logsoftmax(states)
+        else:                
+            log_pg_o_s = self.policy.logsoftmax(states).detach()
+        return m_utils.kl_logits(old_log_pg_o_s,log_pg_o_s).mean()  
+
     def load(self):
         super(GateTRPO,self).load()
 
         for p in self.options:
             p.load()
+            

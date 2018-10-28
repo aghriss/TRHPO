@@ -1,11 +1,10 @@
 
-"""
-
 policy_func=TRPOPolicy;
 value_func= VFunction; n_options=4; option_len=3;
 timesteps_per_batch=1000;
 gamma=0.99; lam=0.97;
-max_kl=1e-2;
+gate_max_kl=1e-3;
+option_max_kl = 1e-2;
 cg_iters=10;
 cg_damping=1e-2;
 vf_iters=2;
@@ -31,7 +30,7 @@ import core.console as C
 states = U.torchify(path["states"])
 options = U.torchify(path["options"]).long()
 actions = U.torchify(path["actions"]).long()
-advantages = U.torchify(path["advantage"])
+advantages = U.torchify(path["baseline"])
 tdlamret = U.torchify(path["tdlamret"])
 vpred = U.torchify(path["vf"]) # predicted value function before udpate
 advantages = (advantages - advantages.mean()) / advantages.std() # standardized advantage function estimate        
